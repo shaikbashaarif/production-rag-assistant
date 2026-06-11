@@ -1,0 +1,42 @@
+# Python
+
+venv/
+**pycache**/
+*.pyc
+
+# Environment variables
+
+.env
+
+# Database
+
+*.db
+
+# Uploads
+
+backend/app/storage/uploads/
+
+# Node
+
+frontend/node_modules/
+
+# Build
+
+frontend/dist/
+
+# OS
+
+.DS_Store
+Thumbs.db
+
+# IDE
+
+.vscode/
+
+# Chroma (old storage if still exists)
+
+storage/chroma/
+
+# Local app storage
+backend/app/storage/chroma/
+backend/app/storage/uploads/
