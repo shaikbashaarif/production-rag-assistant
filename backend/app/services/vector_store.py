@@ -243,6 +243,56 @@ def similarity_search(question: str, k: int = 4) -> List[Document]:
     finally:
         db.close()
 
+def keyword_search(question: str, k: int = 4) -> List[Document]:
+    db = SessionLocal()
+
+    try:
+        rows = (
+            db.query(DocumentChunk)
+            .filter(DocumentChunk.content.ilike(f"%{question}%"))
+            .limit(k)
+            .all()
+        )
+
+        docs = []
+
+        for row in rows:
+            docs.append(
+                Document(
+                    page_content=row.content,
+                    metadata={
+                        "document_id": row.document_id,
+                        "filename": row.filename,
+                        "source": row.filename,
+                        "page": row.page,
+                        "chunk_id": row.chunk_id,
+                        "search_type": "keyword",
+                    },
+                )
+            )
+
+        return docs
+
+    finally:
+        db.close()
+
+
+def hybrid_search(question: str, k: int = 4) -> List[Document]:
+    vector_docs = similarity_search(question, k=k)
+    keyword_docs = keyword_search(question, k=k)
+
+    combined = []
+    seen_chunk_ids = set()
+
+    for doc in vector_docs + keyword_docs:
+        chunk_id = doc.metadata.get("chunk_id")
+
+        if chunk_id and chunk_id not in seen_chunk_ids:
+            seen_chunk_ids.add(chunk_id)
+            combined.append(doc)
+
+    return combined[:k]
+
 
 def delete_document_chunks(chunk_ids: List[str]):
     if not chunk_ids:

@@ -89,3 +89,9 @@ details { font-size:14px; color:#374151; }
   font-size: 13px;
   color: #374151;
 }
+
+.active-thread {
+  background: #dbeafe;
+  border: 1px solid #2563eb;
+  color: #1d4ed8;
+}

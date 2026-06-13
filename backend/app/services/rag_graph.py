@@ -9,7 +9,8 @@ from langgraph.graph.message import add_messages
 from langgraph.checkpoint.sqlite import SqliteSaver
 
 from app.core.config import settings
-from app.services.vector_store import similarity_search
+#from app.services.vector_store import similarity_search
+from app.services.vector_store import hybrid_search
 
 
 llm = ChatOpenAI(
@@ -78,7 +79,7 @@ Question:
 def rag_node(state: RAGState):
     user_question = state["messages"][-1].content
 
-    docs = similarity_search(user_question, k=4)
+    docs = hybrid_search(user_question, k=4)
 
     prompt = build_rag_prompt(user_question, docs)
 
@@ -104,7 +105,7 @@ rag_app = graph.compile(checkpointer=checkpointer)
 
 
 def ask_rag(question: str, thread_id: str, top_k: int = 4):
-    docs = similarity_search(question, k=top_k)
+    docs = hybrid_search(question, k=top_k)
 
     prompt = build_rag_prompt(question, docs)
 
@@ -124,21 +125,35 @@ def ask_rag(question: str, thread_id: str, top_k: int = 4):
     # ]
 
 
-    sources = [
-    {
-        "filename": doc.metadata.get("filename", "unknown"),
-        "page": doc.metadata.get("page"),
-        "preview": doc.page_content[:500],
-        "document_id": doc.metadata.get("document_id"),
-    }
-    for doc in docs
-]
+#     sources = [
+#     {
+#         "filename": doc.metadata.get("filename", "unknown"),
+#         "page": doc.metadata.get("page"),
+#         "preview": doc.page_content[:150],
+#         "document_id": doc.metadata.get("document_id"),
+#     }
+#     for doc in docs
+# ]
+
+    best_doc = docs[0] if docs else None
+
+    sources = []
+
+    if best_doc:
+        sources = [
+            {
+                "filename": best_doc.metadata.get("filename", "unknown"),
+                "page": best_doc.metadata.get("page"),
+                "preview": best_doc.page_content[:180],
+                "document_id": best_doc.metadata.get("document_id"),
+            }
+        ]
 
     return response.content, sources
 
 
 async def stream_rag(question: str, thread_id: str, top_k: int = 4):
-    docs = similarity_search(question, k=top_k)
+    docs = hybrid_search(question, k=top_k)
 
     prompt = build_rag_prompt(question, docs)
 
