@@ -320,7 +320,8 @@ from langchain_core.documents import Document
 from langchain_openai import OpenAIEmbeddings
 from langchain_community.document_loaders import PyPDFLoader, TextLoader
 from langchain_text_splitters import RecursiveCharacterTextSplitter
-from sqlalchemy import or_
+# from sqlalchemy import or_
+from sqlalchemy import or_, text
 
 from app.core.config import settings
 from app.db.database import SessionLocal
@@ -468,44 +469,98 @@ def similarity_search(question: str, k: int = 4) -> List[Document]:
         db.close()
 
 
+# def keyword_search(question: str, k: int = 4) -> List[Document]:
+#     keywords = extract_keywords(question)
+
+#     if not keywords:
+#         return []
+
+#     db = SessionLocal()
+
+#     try:
+#         conditions = [
+#             DocumentChunk.content.ilike(f"%{keyword}%")
+#             for keyword in keywords
+#         ]
+
+#         rows = (
+#             db.query(DocumentChunk)
+#             .filter(or_(*conditions))
+#             .limit(k)
+#             .all()
+#         )
+
+#         results = []
+
+#         for row in rows:
+#             content_lower = row.content.lower()
+
+#             keyword_score = sum(
+#                 1 for keyword in keywords if keyword in content_lower
+#             )
+
+#             results.append(_row_to_doc(row, "keyword", score=keyword_score))
+
+#         results.sort(key=lambda doc: doc.metadata.get("score", 0), reverse=True)
+
+#         return results[:k]
+
+#     finally:
+#         db.close()
+
 def keyword_search(question: str, k: int = 4) -> List[Document]:
-    keywords = extract_keywords(question)
-
-    if not keywords:
-        return []
-
     db = SessionLocal()
 
     try:
-        conditions = [
-            DocumentChunk.content.ilike(f"%{keyword}%")
-            for keyword in keywords
-        ]
+        sql = """
+        SELECT
+            id,
+            chunk_id,
+            document_id,
+            filename,
+            page,
+            content,
+            ts_rank(
+                to_tsvector('english', content),
+                plainto_tsquery('english', :query)
+            ) AS rank
+        FROM document_chunks
+        WHERE to_tsvector('english', content) @@ plainto_tsquery('english', :query)
+        ORDER BY rank DESC
+        LIMIT :limit
+        """
 
-        rows = (
-            db.query(DocumentChunk)
-            .filter(or_(*conditions))
-            .limit(k)
-            .all()
-        )
+        rows = db.execute(
+            text(sql),
+            {
+                "query": question,
+                "limit": k,
+            },
+        ).fetchall()
 
-        results = []
+        docs = []
 
         for row in rows:
-            content_lower = row.content.lower()
-
-            keyword_score = sum(
-                1 for keyword in keywords if keyword in content_lower
+            docs.append(
+                Document(
+                    page_content=row.content,
+                    metadata={
+                        "document_id": row.document_id,
+                        "filename": row.filename,
+                        "source": row.filename,
+                        "page": row.page,
+                        "chunk_id": row.chunk_id,
+                        "search_type": "postgres_full_text",
+                        "score": float(row.rank or 0),
+                    },
+                )
             )
 
-            results.append(_row_to_doc(row, "keyword", score=keyword_score))
-
-        results.sort(key=lambda doc: doc.metadata.get("score", 0), reverse=True)
-
-        return results[:k]
+        return docs
 
     finally:
         db.close()
+
 
 
 def hybrid_search(question: str, k: int = 4) -> List[Document]:
