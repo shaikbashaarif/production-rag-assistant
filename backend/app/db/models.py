@@ -106,7 +106,15 @@
 #     no_answer: Mapped[int] = mapped_column(Integer, default=0)
 #     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 
-
+from sqlalchemy import (
+    Column,
+    String,
+    Integer,
+    DateTime,
+    ForeignKey,
+    Text,
+    Boolean,
+)
 from datetime import datetime
 from typing import Optional, List
 
@@ -115,10 +123,27 @@ from sqlalchemy import String, DateTime, Integer, Text, ForeignKey, Float
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.database import Base
+from sqlalchemy import Boolean
 
 
 EMBEDDING_DIM = 1536
 
+class User(Base):
+    __tablename__ = "users"
+
+    id = Column(String, primary_key=True)
+
+    email = Column(String, unique=True, nullable=False)
+
+    hashed_password = Column(
+        String,
+        nullable=False,
+    )
+
+    is_active = Column(
+        Boolean,
+        default=True,
+    )
 
 class ChatThread(Base):
     __tablename__ = "chat_threads"
