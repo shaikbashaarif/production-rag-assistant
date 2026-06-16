@@ -209,3 +209,28 @@ def evaluation_summary(db: Session):
         "average_latency_ms": round(avg_latency, 2),
         "no_answer_count": no_answer_count,
     }
+
+from app.db.models import User
+
+
+def get_user_by_email(db: Session, email: str):
+    return db.query(User).filter(User.email == email).first()
+
+
+def get_user_by_id(db: Session, user_id: str):
+    return db.query(User).filter(User.id == user_id).first()
+
+
+def create_user(db: Session, user_id: str, email: str, hashed_password: str):
+    user = User(
+        id=user_id,
+        email=email,
+        hashed_password=hashed_password,
+        is_active=True,
+    )
+
+    db.add(user)
+    db.commit()
+    db.refresh(user)
+
+    return user

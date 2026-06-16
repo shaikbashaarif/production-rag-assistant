@@ -55,8 +55,8 @@ class EvaluationResponse(BaseModel):
     no_answer: int
     created_at: datetime
 
-    class Config:
-        from_attributes = True
+class Config:
+    from_attributes = True
 
 
 class EvaluationSummary(BaseModel):
@@ -65,3 +65,26 @@ class EvaluationSummary(BaseModel):
     total_chunks: int
     average_latency_ms: float
     no_answer_count: int
+
+class UserRegister(BaseModel):
+    email: str
+    password: str
+
+
+class UserLogin(BaseModel):
+    email: str
+    password: str
+
+
+class TokenResponse(BaseModel):
+    access_token: str
+    token_type: str = "bearer"
+
+
+class UserResponse(BaseModel):
+    id: str
+    email: str
+    is_active: bool
+
+class Config:
+     from_attributes = True

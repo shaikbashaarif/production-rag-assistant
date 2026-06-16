@@ -115,6 +115,7 @@ from sqlalchemy import (
     Text,
     Boolean,
 )
+from sqlalchemy import JSON
 from datetime import datetime
 from typing import Optional, List
 
@@ -149,6 +150,11 @@ class ChatThread(Base):
     __tablename__ = "chat_threads"
 
     id: Mapped[str] = mapped_column(String, primary_key=True)
+    user_id = Column(
+        String,
+        ForeignKey("users.id"),
+        nullable=False,
+    )
     title: Mapped[str] = mapped_column(String, default="New Chat")
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
@@ -176,6 +182,11 @@ class UploadedDocument(Base):
     __tablename__ = "uploaded_documents"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    user_id = Column(
+        String,
+        ForeignKey("users.id"),
+        nullable=False,
+    )
     document_id: Mapped[str] = mapped_column(String, unique=True, index=True)
     filename: Mapped[str] = mapped_column(String)
     stored_path: Mapped[str] = mapped_column(String)
@@ -201,6 +212,11 @@ class EvaluationLog(Base):
     __tablename__ = "evaluation_logs"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    user_id = Column(
+        String,
+        ForeignKey("users.id"),
+        nullable=False,
+    )
     thread_id: Mapped[str] = mapped_column(String)
     question: Mapped[str] = mapped_column(Text)
     answer: Mapped[str] = mapped_column(Text)

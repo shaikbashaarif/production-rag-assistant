@@ -28,7 +28,7 @@ def verify_password(
 
 def create_access_token(
     data: dict,
-    expires_delta: timedelta | None = None,
+    expires_delta=None,
 ):
     to_encode = data.copy()
 
