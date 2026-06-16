@@ -146,6 +146,21 @@ class User(Base):
         default=True,
     )
 
+    documents = relationship(
+    "UploadedDocument",
+    back_populates="user",
+    )
+
+    threads = relationship(
+        "ChatThread",
+        back_populates="user",
+    )
+
+    evaluations = relationship(
+        "EvaluationLog",
+        back_populates="user",
+    )
+
 class ChatThread(Base):
     __tablename__ = "chat_threads"
 
@@ -162,6 +177,10 @@ class ChatThread(Base):
     messages: Mapped[List["ChatMessage"]] = relationship(
         back_populates="thread",
         cascade="all, delete-orphan",
+    )
+    user = relationship(
+    "User",
+    back_populates="threads",
     )
 
 
@@ -193,6 +212,10 @@ class UploadedDocument(Base):
     chunks_added: Mapped[int] = mapped_column(Integer)
     chunk_ids_json: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    user = relationship(
+    "User",
+    back_populates="documents",
+    )
 
 
 class DocumentChunk(Base):
@@ -224,3 +247,7 @@ class EvaluationLog(Base):
     sources_count: Mapped[int] = mapped_column(Integer)
     no_answer: Mapped[int] = mapped_column(Integer, default=0)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    user = relationship(
+    "User",
+    back_populates="evaluations",
+    )

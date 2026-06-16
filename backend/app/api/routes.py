@@ -187,6 +187,7 @@ import time
 from fastapi import APIRouter, UploadFile, File, HTTPException, Depends
 from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
+from app.auth.dependencies import get_current_user
 
 from app.core.config import settings
 from app.db.database import get_db
@@ -217,6 +218,7 @@ def health():
 async def upload_document(
     file: UploadFile = File(...),
     db: Session = Depends(get_db),
+    current_user=Depends(get_current_user),
 ):
     if not file.filename.lower().endswith((".pdf", ".txt")):
         raise HTTPException(
@@ -237,6 +239,7 @@ async def upload_document(
 
     crud.add_document(
         db=db,
+        user_id=current_user.id,
         document_id=document_id,
         filename=file.filename,
         stored_path=path,
@@ -253,13 +256,13 @@ async def upload_document(
 
 
 @router.get("/documents", response_model=list[DocumentResponse])
-def list_documents(db: Session = Depends(get_db)):
-    return crud.list_documents(db)
+def list_documents(db: Session = Depends(get_db), current_user=Depends(get_current_user)):
+    return crud.list_documents(db, current_user.id)
 
 
 @router.delete("/documents/{document_id}")
-def delete_document(document_id: str, db: Session = Depends(get_db)):
-    doc = crud.get_document(db, document_id)
+def delete_document(document_id: str, db: Session = Depends(get_db), current_user=Depends(get_current_user)):
+    doc = crud.get_document(db, document_id, current_user.id)
 
     if not doc:
         raise HTTPException(status_code=404, detail="Document not found.")
@@ -271,7 +274,7 @@ def delete_document(document_id: str, db: Session = Depends(get_db)):
     if os.path.exists(doc.stored_path):
         os.remove(doc.stored_path)
 
-    crud.delete_document_record(db, document_id)
+    crud.delete_document_record(db, document_id, current_user.id)
 
     return {
         "message": "Document and vector chunks deleted successfully.",
