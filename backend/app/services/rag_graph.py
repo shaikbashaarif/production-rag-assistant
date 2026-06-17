@@ -267,7 +267,7 @@ def get_best_preview(question: str, content: str, max_chars: int = 220) -> str:
 
 def rag_node(state: RAGState):
     user_question = state["messages"][-1].content
-    docs = hybrid_search(user_question, k=4)
+    docs = []
     prompt = build_rag_prompt(user_question, docs)
 
     response = llm.invoke(
@@ -291,8 +291,8 @@ graph.add_edge("rag_node", END)
 rag_app = graph.compile(checkpointer=checkpointer)
 
 
-def ask_rag(question: str, thread_id: str, top_k: int = 4):
-    docs = hybrid_search(question, k=top_k)
+def ask_rag(question: str, thread_id: str, user_id: str, top_k: int = 4):
+    docs = hybrid_search(question, user_id=user_id, k=top_k)
 
     prompt = build_rag_prompt(question, docs)
 
@@ -320,8 +320,8 @@ def ask_rag(question: str, thread_id: str, top_k: int = 4):
     return response.content, sources
 
 
-async def stream_rag(question: str, thread_id: str, top_k: int = 4):
-    docs = hybrid_search(question, k=top_k)
+async def stream_rag(question: str, thread_id: str, user_id: str, top_k: int = 4):
+    docs = hybrid_search(question, user_id=user_id, k=top_k)
 
     prompt = build_rag_prompt(question, docs)
 

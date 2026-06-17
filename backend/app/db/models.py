@@ -218,10 +218,30 @@ class UploadedDocument(Base):
     )
 
 
+# class DocumentChunk(Base):
+#     __tablename__ = "document_chunks"
+
+#     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+#     chunk_id: Mapped[str] = mapped_column(String, unique=True, index=True)
+#     document_id: Mapped[str] = mapped_column(String, index=True)
+#     filename: Mapped[str] = mapped_column(String)
+#     page: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+#     content: Mapped[str] = mapped_column(Text)
+#     embedding = mapped_column(Vector(EMBEDDING_DIM))
+#     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
 class DocumentChunk(Base):
     __tablename__ = "document_chunks"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+
+    user_id = Column(
+        String,
+        ForeignKey("users.id"),
+        nullable=False,
+        index=True,
+    )
+
     chunk_id: Mapped[str] = mapped_column(String, unique=True, index=True)
     document_id: Mapped[str] = mapped_column(String, index=True)
     filename: Mapped[str] = mapped_column(String)

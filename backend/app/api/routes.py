@@ -235,7 +235,13 @@ async def upload_document(
     with open(path, "wb") as f:
         f.write(await file.read())
 
-    chunks_added, chunk_ids = ingest_file(path, file.filename, document_id)
+    # chunks_added, chunk_ids = ingest_file(path, file.filename, document_id)
+    chunks_added, chunk_ids = ingest_file(
+    path,
+    file.filename,
+    document_id,
+    current_user.id,
+    )
 
     crud.add_document(
         db=db,
@@ -281,36 +287,45 @@ def delete_document(document_id: str, db: Session = Depends(get_db), current_use
         "document_id": document_id,
     }
 
-
 @router.post("/chat", response_model=ChatResponse)
 def chat(
     request: ChatRequest,
     db: Session = Depends(get_db),
+    current_user=Depends(get_current_user),
 ):
     start = time.time()
 
-    crud.get_or_create_thread(db, request.thread_id)
+    crud.get_or_create_thread(db, request.thread_id, current_user.id)
 
-    existing = crud.get_messages(db, request.thread_id)
+    existing = crud.get_messages(db, request.thread_id, current_user.id)
 
     if len(existing) == 0:
         crud.update_thread_title(
             db,
             request.thread_id,
+            current_user.id,
             generate_title(request.question),
         )
 
-    crud.add_message(db, request.thread_id, "user", request.question)
+    crud.add_message(
+        db,
+        request.thread_id,
+        current_user.id,
+        "user",
+        request.question,
+    )
 
     answer, sources = ask_rag(
-        request.question,
-        request.thread_id,
-        request.top_k,
+        question=request.question,
+        thread_id=request.thread_id,
+        user_id=current_user.id,
+        top_k=request.top_k,
     )
 
     crud.add_message(
         db,
         request.thread_id,
+        current_user.id,
         "assistant",
         answer,
         sources=sources,
@@ -320,6 +335,7 @@ def chat(
 
     crud.add_evaluation(
         db=db,
+        user_id=current_user.id,
         thread_id=request.thread_id,
         question=request.question,
         answer=answer,
@@ -338,29 +354,38 @@ def chat(
 async def chat_stream(
     request: ChatRequest,
     db: Session = Depends(get_db),
+    current_user=Depends(get_current_user),
 ):
     start = time.time()
 
-    crud.get_or_create_thread(db, request.thread_id)
+    crud.get_or_create_thread(db, request.thread_id, current_user.id)
 
-    existing = crud.get_messages(db, request.thread_id)
+    existing = crud.get_messages(db, request.thread_id, current_user.id)
 
     if len(existing) == 0:
         crud.update_thread_title(
             db,
             request.thread_id,
+            current_user.id,
             generate_title(request.question),
         )
 
-    crud.add_message(db, request.thread_id, "user", request.question)
+    crud.add_message(
+        db,
+        request.thread_id,
+        current_user.id,
+        "user",
+        request.question,
+    )
 
     async def event_generator():
         full_answer = ""
 
         answer, sources = ask_rag(
-            request.question,
-            request.thread_id,
-            request.top_k,
+            question=request.question,
+            thread_id=request.thread_id,
+            user_id=current_user.id,
+            top_k=request.top_k,
         )
 
         for token in answer.split(" "):
@@ -370,6 +395,7 @@ async def chat_stream(
         crud.add_message(
             db,
             request.thread_id,
+            current_user.id,
             "assistant",
             full_answer.strip(),
             sources=sources,
@@ -379,6 +405,7 @@ async def chat_stream(
 
         crud.add_evaluation(
             db=db,
+            user_id=current_user.id,
             thread_id=request.thread_id,
             question=request.question,
             answer=full_answer.strip(),
@@ -396,16 +423,20 @@ async def chat_stream(
 
 
 @router.get("/threads", response_model=list[ThreadResponse])
-def threads(db: Session = Depends(get_db)):
-    return crud.list_threads(db)
+def threads(
+    db: Session = Depends(get_db),
+    current_user=Depends(get_current_user),
+):
+    return crud.list_threads(db, current_user.id)
 
 
 @router.get("/threads/{thread_id}/messages", response_model=list[MessageResponse])
 def thread_messages(
     thread_id: str,
     db: Session = Depends(get_db),
+    current_user=Depends(get_current_user),
 ):
-    rows = crud.get_messages(db, thread_id)
+    rows = crud.get_messages(db, thread_id, current_user.id)
 
     return [
         MessageResponse(
@@ -419,10 +450,16 @@ def thread_messages(
 
 
 @router.get("/evaluations", response_model=list[EvaluationResponse])
-def evaluations(db: Session = Depends(get_db)):
-    return crud.list_evaluations(db)
+def evaluations(
+    db: Session = Depends(get_db),
+    current_user=Depends(get_current_user),
+):
+    return crud.list_evaluations(db, current_user.id)
 
 
 @router.get("/evaluations/summary", response_model=EvaluationSummary)
-def evaluations_summary(db: Session = Depends(get_db)):
-    return crud.evaluation_summary(db)
+def evaluations_summary(
+    db: Session = Depends(get_db),
+    current_user=Depends(get_current_user),
+):
+    return crud.evaluation_summary(db, current_user.id)

@@ -386,7 +386,7 @@ def extract_keywords(question: str) -> List[str]:
     return list(dict.fromkeys(keywords))
 
 
-def ingest_file(path: str, original_filename: str, document_id: str) -> Tuple[int, List[str]]:
+def ingest_file(path: str, original_filename: str, document_id: str, user_id: str) -> Tuple[int, List[str]]:
     docs = load_file(path)
 
     for doc in docs:
@@ -414,6 +414,7 @@ def ingest_file(path: str, original_filename: str, document_id: str) -> Tuple[in
             embedding = _embeddings.embed_query(content)
 
             row = DocumentChunk(
+                user_id=user_id,
                 chunk_id=chunk_id,
                 document_id=document_id,
                 filename=original_filename,
@@ -451,13 +452,31 @@ def _row_to_doc(row: DocumentChunk, search_type: str, score: float = 0.0) -> Doc
     )
 
 
-def similarity_search(question: str, k: int = 4) -> List[Document]:
+# def similarity_search(question: str, k: int = 4) -> List[Document]:
+#     query_embedding = _embeddings.embed_query(question)
+#     db = SessionLocal()
+
+#     try:
+#         rows = (
+#             db.query(DocumentChunk)
+#             .order_by(DocumentChunk.embedding.cosine_distance(query_embedding))
+#             .limit(k)
+#             .all()
+#         )
+
+#         return [_row_to_doc(row, "vector") for row in rows]
+
+#     finally:
+#         db.close()
+
+def similarity_search(question: str, user_id: str, k: int = 4) -> List[Document]:
     query_embedding = _embeddings.embed_query(question)
     db = SessionLocal()
 
     try:
         rows = (
             db.query(DocumentChunk)
+            .filter(DocumentChunk.user_id == user_id)
             .order_by(DocumentChunk.embedding.cosine_distance(query_embedding))
             .limit(k)
             .all()
@@ -508,13 +527,67 @@ def similarity_search(question: str, k: int = 4) -> List[Document]:
 #     finally:
 #         db.close()
 
-def keyword_search(question: str, k: int = 4) -> List[Document]:
+# def keyword_search(question: str, k: int = 4) -> List[Document]:
+#     db = SessionLocal()
+
+#     try:
+#         sql = """
+#         SELECT
+#             id,
+#             chunk_id,
+#             document_id,
+#             filename,
+#             page,
+#             content,
+#             ts_rank(
+#                 to_tsvector('english', content),
+#                 plainto_tsquery('english', :query)
+#             ) AS rank
+#         FROM document_chunks
+#         WHERE to_tsvector('english', content) @@ plainto_tsquery('english', :query)
+#         ORDER BY rank DESC
+#         LIMIT :limit
+#         """
+
+#         rows = db.execute(
+#             text(sql),
+#             {
+#                 "query": question,
+#                 "limit": k,
+#             },
+#         ).fetchall()
+
+#         docs = []
+
+#         for row in rows:
+#             docs.append(
+#                 Document(
+#                     page_content=row.content,
+#                     metadata={
+#                         "document_id": row.document_id,
+#                         "filename": row.filename,
+#                         "source": row.filename,
+#                         "page": row.page,
+#                         "chunk_id": row.chunk_id,
+#                         "search_type": "postgres_full_text",
+#                         "score": float(row.rank or 0),
+#                     },
+#                 )
+#             )
+
+#         return docs
+
+#     finally:
+#         db.close()
+
+def keyword_search(question: str, user_id: str, k: int = 4) -> List[Document]:
     db = SessionLocal()
 
     try:
         sql = """
         SELECT
             id,
+            user_id,
             chunk_id,
             document_id,
             filename,
@@ -525,7 +598,8 @@ def keyword_search(question: str, k: int = 4) -> List[Document]:
                 plainto_tsquery('english', :query)
             ) AS rank
         FROM document_chunks
-        WHERE to_tsvector('english', content) @@ plainto_tsquery('english', :query)
+        WHERE user_id = :user_id
+        AND to_tsvector('english', content) @@ plainto_tsquery('english', :query)
         ORDER BY rank DESC
         LIMIT :limit
         """
@@ -534,6 +608,7 @@ def keyword_search(question: str, k: int = 4) -> List[Document]:
             text(sql),
             {
                 "query": question,
+                "user_id": user_id,
                 "limit": k,
             },
         ).fetchall()
@@ -545,6 +620,7 @@ def keyword_search(question: str, k: int = 4) -> List[Document]:
                 Document(
                     page_content=row.content,
                     metadata={
+                        "user_id": row.user_id,
                         "document_id": row.document_id,
                         "filename": row.filename,
                         "source": row.filename,
@@ -562,15 +638,62 @@ def keyword_search(question: str, k: int = 4) -> List[Document]:
         db.close()
 
 
+# def hybrid_search(question: str, k: int = 4) -> List[Document]:
+#     vector_docs = similarity_search(question, k=k * 2)
+#     keyword_docs = keyword_search(question, k=k * 2)
 
-def hybrid_search(question: str, k: int = 4) -> List[Document]:
-    vector_docs = similarity_search(question, k=k * 2)
-    keyword_docs = keyword_search(question, k=k * 2)
+#     scores = {}
+
+#     for rank, doc in enumerate(vector_docs):
+#         chunk_id = doc.metadata.get("chunk_id")
+#         if not chunk_id:
+#             continue
+
+#         scores[chunk_id] = {
+#             "doc": doc,
+#             "score": 1.0 / (rank + 1),
+#         }
+
+#     for rank, doc in enumerate(keyword_docs):
+#         chunk_id = doc.metadata.get("chunk_id")
+#         if not chunk_id:
+#             continue
+
+#         keyword_boost = 2.0 / (rank + 1)
+
+#         if chunk_id in scores:
+#             scores[chunk_id]["score"] += keyword_boost
+#             scores[chunk_id]["doc"].metadata["search_type"] = "hybrid"
+#         else:
+#             scores[chunk_id] = {
+#                 "doc": doc,
+#                 "score": keyword_boost,
+#             }
+
+#     ranked = sorted(
+#         scores.values(),
+#         key=lambda item: item["score"],
+#         reverse=True,
+#     )
+
+#     final_docs = []
+
+#     for item in ranked[:k]:
+#         doc = item["doc"]
+#         doc.metadata["hybrid_score"] = item["score"]
+#         final_docs.append(doc)
+
+#     return final_docs
+
+def hybrid_search(question: str, user_id: str, k: int = 4) -> List[Document]:
+    vector_docs = similarity_search(question, user_id=user_id, k=k * 2)
+    keyword_docs = keyword_search(question, user_id=user_id, k=k * 2)
 
     scores = {}
 
     for rank, doc in enumerate(vector_docs):
         chunk_id = doc.metadata.get("chunk_id")
+
         if not chunk_id:
             continue
 
@@ -581,6 +704,7 @@ def hybrid_search(question: str, k: int = 4) -> List[Document]:
 
     for rank, doc in enumerate(keyword_docs):
         chunk_id = doc.metadata.get("chunk_id")
+
         if not chunk_id:
             continue
 
@@ -609,7 +733,6 @@ def hybrid_search(question: str, k: int = 4) -> List[Document]:
         final_docs.append(doc)
 
     return final_docs
-
 
 def delete_document_chunks(chunk_ids: List[str]):
     if not chunk_ids:
