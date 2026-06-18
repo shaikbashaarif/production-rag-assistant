@@ -48,36 +48,373 @@
 
 
 
+
+
+
+
+
+
+# import json
+# from datetime import datetime
+
+# from sqlalchemy.orm import Session
+
+# from app.db.models import ChatThread, ChatMessage, UploadedDocument, EvaluationLog
+
+
+# # def get_or_create_thread(db: Session, thread_id: str):
+# #     thread = db.query(ChatThread).filter(ChatThread.id == thread_id).first()
+
+# #     if not thread:
+# #         thread = ChatThread(id=thread_id, title="New Chat")
+# #         db.add(thread)
+# #         db.commit()
+# #         db.refresh(thread)
+
+# #     return thread
+
+# def get_or_create_thread(db: Session, thread_id: str, user_id: str):
+#     thread = (
+#         db.query(ChatThread)
+#         .filter(
+#             ChatThread.id == thread_id,
+#             ChatThread.user_id == user_id,
+#         )
+#         .first()
+#     )
+
+#     if thread:
+#         return thread
+
+#     thread = ChatThread(
+#         id=thread_id,
+#         user_id=user_id,
+#         title="New Chat",
+#     )
+
+#     db.add(thread)
+#     db.commit()
+#     db.refresh(thread)
+
+#     return thread
+
+
+# def update_thread_title(db: Session, thread_id: str, title: str):
+#     thread = get_or_create_thread(db, thread_id)
+#     thread.title = title
+#     thread.updated_at = datetime.utcnow()
+#     db.commit()
+#     return thread
+
+
+# def add_message(db: Session, thread_id: str, role: str, content: str, sources=None):
+#     get_or_create_thread(db, thread_id)
+
+#     message = ChatMessage(
+#         thread_id=thread_id,
+#         role=role,
+#         content=content,
+#         sources_json=json.dumps(sources or []),
+#     )
+
+#     db.add(message)
+
+#     thread = db.query(ChatThread).filter(ChatThread.id == thread_id).first()
+#     thread.updated_at = datetime.utcnow()
+
+#     db.commit()
+#     db.refresh(message)
+
+#     return message
+
+
+# def get_messages(db: Session, thread_id: str):
+#     return (
+#         db.query(ChatMessage)
+#         .filter(ChatMessage.thread_id == thread_id)
+#         .order_by(ChatMessage.created_at.asc())
+#         .all()
+#     )
+
+
+# # def list_threads(db: Session):
+# #     return db.query(ChatThread).order_by(ChatThread.updated_at.desc()).all()
+
+# def list_threads(db: Session, user_id: str):
+#     return (
+#         db.query(ChatThread)
+#         .filter(ChatThread.user_id == user_id)
+#         .order_by(ChatThread.updated_at.desc())
+#         .all()
+#     )
+
+
+# # def add_document(
+# #     db: Session,
+# #     document_id: str,
+# #     filename: str,
+# #     stored_path: str,
+# #     chunks_added: int,
+# #     chunk_ids: list[str],
+# # ):
+# #     doc = UploadedDocument(
+# #         document_id=document_id,
+# #         filename=filename,
+# #         stored_path=stored_path,
+# #         chunks_added=chunks_added,
+# #         chunk_ids_json=json.dumps(chunk_ids),
+# #     )
+
+# #     db.add(doc)
+# #     db.commit()
+# #     db.refresh(doc)
+
+# #     return doc
+
+# def add_document(
+#     db: Session,
+#     user_id: str,
+#     document_id: str,
+#     filename: str,
+#     stored_path: str,
+#     chunks_added: int,
+#     chunk_ids: list[str],
+# ):
+#     doc = UploadedDocument(
+#         user_id=user_id,
+#         document_id=document_id,
+#         filename=filename,
+#         stored_path=stored_path,
+#         chunks_added=chunks_added,
+#         chunk_ids_json=json.dumps(chunk_ids),
+#     )
+
+#     db.add(doc)
+#     db.commit()
+#     db.refresh(doc)
+
+#     return doc
+
+
+# # def list_documents(db: Session):
+# #     return db.query(UploadedDocument).order_by(UploadedDocument.created_at.desc()).all()
+
+# # def list_documents(db: Session, user_id: str):
+# #     return (
+# #         db.query(UploadedDocument)
+# #         .filter(UploadedDocument.user_id == user_id)
+# #         .order_by(UploadedDocument.created_at.desc())
+# #         .all()
+# #     )
+
+# def list_documents(db: Session, user_id: str):
+#     return (
+#         db.query(UploadedDocument)
+#         .filter(UploadedDocument.user_id == user_id)
+#         .order_by(UploadedDocument.created_at.desc())
+#         .all()
+#     )
+
+
+# # def get_document(db: Session, document_id: str):
+# #     return (
+# #         db.query(UploadedDocument)
+# #         .filter(UploadedDocument.document_id == document_id)
+# #         .first()
+# #     )
+
+# def get_document(db: Session, document_id: str, user_id: str):
+#     return (
+#         db.query(UploadedDocument)
+#         .filter(
+#             UploadedDocument.document_id == document_id,
+#             UploadedDocument.user_id == user_id,
+#         )
+#         .first()
+#     )
+
+
+# def delete_document_record(db: Session, document_id: str):
+#     doc = get_document(db, document_id)
+
+#     if not doc:
+#         return None
+
+#     db.delete(doc)
+#     db.commit()
+
+#     return doc
+
+
+# def add_evaluation(
+#     db: Session,
+#     thread_id: str,
+#     question: str,
+#     answer: str,
+#     latency_ms: float,
+#     sources_count: int,
+# ):
+#     no_answer = 1 if "I don't know based on the uploaded documents" in answer else 0
+
+#     row = EvaluationLog(
+#         thread_id=thread_id,
+#         question=question,
+#         answer=answer,
+#         latency_ms=latency_ms,
+#         sources_count=sources_count,
+#         no_answer=no_answer,
+#     )
+
+#     db.add(row)
+#     db.commit()
+#     db.refresh(row)
+
+#     return row
+
+
+# def list_evaluations(db: Session):
+#     return db.query(EvaluationLog).order_by(EvaluationLog.created_at.desc()).all()
+
+
+# def evaluation_summary(db: Session):
+#     rows = db.query(EvaluationLog).all()
+#     documents = db.query(UploadedDocument).all()
+
+#     total_queries = len(rows)
+#     total_documents = len(documents)
+#     total_chunks = sum(doc.chunks_added for doc in documents)
+#     no_answer_count = sum(row.no_answer for row in rows)
+
+#     avg_latency = (
+#         sum(row.latency_ms for row in rows) / total_queries
+#         if total_queries > 0
+#         else 0
+#     )
+
+#     return {
+#         "total_queries": total_queries,
+#         "total_documents": total_documents,
+#         "total_chunks": total_chunks,
+#         "average_latency_ms": round(avg_latency, 2),
+#         "no_answer_count": no_answer_count,
+#     }
+
+# from app.db.models import User
+
+
+# def get_user_by_email(db: Session, email: str):
+#     return db.query(User).filter(User.email == email).first()
+
+
+# def get_user_by_id(db: Session, user_id: str):
+#     return db.query(User).filter(User.id == user_id).first()
+
+
+# def create_user(db: Session, user_id: str, email: str, hashed_password: str):
+#     user = User(
+#         id=user_id,
+#         email=email,
+#         hashed_password=hashed_password,
+#         is_active=True,
+#     )
+
+#     db.add(user)
+#     db.commit()
+#     db.refresh(user)
+
+#     return user
+
+
 import json
 from datetime import datetime
 
 from sqlalchemy.orm import Session
 
-from app.db.models import ChatThread, ChatMessage, UploadedDocument, EvaluationLog
+from app.db.models import (
+    ChatThread,
+    ChatMessage,
+    UploadedDocument,
+    EvaluationLog,
+    User,
+)
 
 
-def get_or_create_thread(db: Session, thread_id: str):
-    thread = db.query(ChatThread).filter(ChatThread.id == thread_id).first()
+# def get_or_create_thread(db: Session, thread_id: str, user_id: str):
+#     thread = (
+#         db.query(ChatThread)
+#         .filter(
+#             ChatThread.id == thread_id,
+#             ChatThread.user_id == user_id,
+#         )
+#         .first()
+#     )
 
-    if not thread:
-        thread = ChatThread(id=thread_id, title="New Chat")
-        db.add(thread)
-        db.commit()
-        db.refresh(thread)
+#     if thread:
+#         return thread
 
-    return thread
+#     thread = ChatThread(
+#         id=thread_id,
+#         user_id=user_id,
+#         title="New Chat",
+#     )
 
+#     db.add(thread)
+#     db.commit()
+#     db.refresh(thread)
 
-def update_thread_title(db: Session, thread_id: str, title: str):
-    thread = get_or_create_thread(db, thread_id)
-    thread.title = title
-    thread.updated_at = datetime.utcnow()
+#     return thread
+
+def get_or_create_thread(db: Session, thread_id: str, user_id: str):
+    existing_thread = (
+        db.query(ChatThread)
+        .filter(ChatThread.id == thread_id)
+        .first()
+    )
+
+    if existing_thread:
+        if existing_thread.user_id != user_id:
+            raise ValueError("Thread does not belong to this user.")
+
+        return existing_thread
+
+    thread = ChatThread(
+        id=thread_id,
+        user_id=user_id,
+        title="New Chat",
+    )
+
+    db.add(thread)
     db.commit()
+    db.refresh(thread)
+
     return thread
 
 
-def add_message(db: Session, thread_id: str, role: str, content: str, sources=None):
-    get_or_create_thread(db, thread_id)
+def update_thread_title(
+    db: Session,
+    thread_id: str,
+    user_id: str,
+    title: str,
+):
+    thread = get_or_create_thread(db, thread_id, user_id)
+    thread.title = title[:80]
+    thread.updated_at = datetime.utcnow()
+
+    db.commit()
+    db.refresh(thread)
+
+    return thread
+
+
+def add_message(
+    db: Session,
+    thread_id: str,
+    user_id: str,
+    role: str,
+    content: str,
+    sources=None,
+):
+    get_or_create_thread(db, thread_id, user_id)
 
     message = ChatMessage(
         thread_id=thread_id,
@@ -88,8 +425,17 @@ def add_message(db: Session, thread_id: str, role: str, content: str, sources=No
 
     db.add(message)
 
-    thread = db.query(ChatThread).filter(ChatThread.id == thread_id).first()
-    thread.updated_at = datetime.utcnow()
+    thread = (
+        db.query(ChatThread)
+        .filter(
+            ChatThread.id == thread_id,
+            ChatThread.user_id == user_id,
+        )
+        .first()
+    )
+
+    if thread:
+        thread.updated_at = datetime.utcnow()
 
     db.commit()
     db.refresh(message)
@@ -97,7 +443,23 @@ def add_message(db: Session, thread_id: str, role: str, content: str, sources=No
     return message
 
 
-def get_messages(db: Session, thread_id: str):
+def get_messages(
+    db: Session,
+    thread_id: str,
+    user_id: str,
+):
+    thread = (
+        db.query(ChatThread)
+        .filter(
+            ChatThread.id == thread_id,
+            ChatThread.user_id == user_id,
+        )
+        .first()
+    )
+
+    if not thread:
+        return []
+
     return (
         db.query(ChatMessage)
         .filter(ChatMessage.thread_id == thread_id)
@@ -106,12 +468,18 @@ def get_messages(db: Session, thread_id: str):
     )
 
 
-def list_threads(db: Session):
-    return db.query(ChatThread).order_by(ChatThread.updated_at.desc()).all()
+def list_threads(db: Session, user_id: str):
+    return (
+        db.query(ChatThread)
+        .filter(ChatThread.user_id == user_id)
+        .order_by(ChatThread.updated_at.desc())
+        .all()
+    )
 
 
 def add_document(
     db: Session,
+    user_id: str,
     document_id: str,
     filename: str,
     stored_path: str,
@@ -119,6 +487,7 @@ def add_document(
     chunk_ids: list[str],
 ):
     doc = UploadedDocument(
+        user_id=user_id,
         document_id=document_id,
         filename=filename,
         stored_path=stored_path,
@@ -133,20 +502,36 @@ def add_document(
     return doc
 
 
-def list_documents(db: Session):
-    return db.query(UploadedDocument).order_by(UploadedDocument.created_at.desc()).all()
-
-
-def get_document(db: Session, document_id: str):
+def list_documents(db: Session, user_id: str):
     return (
         db.query(UploadedDocument)
-        .filter(UploadedDocument.document_id == document_id)
+        .filter(UploadedDocument.user_id == user_id)
+        .order_by(UploadedDocument.created_at.desc())
+        .all()
+    )
+
+
+def get_document(
+    db: Session,
+    document_id: str,
+    user_id: str,
+):
+    return (
+        db.query(UploadedDocument)
+        .filter(
+            UploadedDocument.document_id == document_id,
+            UploadedDocument.user_id == user_id,
+        )
         .first()
     )
 
 
-def delete_document_record(db: Session, document_id: str):
-    doc = get_document(db, document_id)
+def delete_document_record(
+    db: Session,
+    document_id: str,
+    user_id: str,
+):
+    doc = get_document(db, document_id, user_id)
 
     if not doc:
         return None
@@ -159,6 +544,7 @@ def delete_document_record(db: Session, document_id: str):
 
 def add_evaluation(
     db: Session,
+    user_id: str,
     thread_id: str,
     question: str,
     answer: str,
@@ -168,6 +554,7 @@ def add_evaluation(
     no_answer = 1 if "I don't know based on the uploaded documents" in answer else 0
 
     row = EvaluationLog(
+        user_id=user_id,
         thread_id=thread_id,
         question=question,
         answer=answer,
@@ -183,13 +570,27 @@ def add_evaluation(
     return row
 
 
-def list_evaluations(db: Session):
-    return db.query(EvaluationLog).order_by(EvaluationLog.created_at.desc()).all()
+def list_evaluations(db: Session, user_id: str):
+    return (
+        db.query(EvaluationLog)
+        .filter(EvaluationLog.user_id == user_id)
+        .order_by(EvaluationLog.created_at.desc())
+        .all()
+    )
 
 
-def evaluation_summary(db: Session):
-    rows = db.query(EvaluationLog).all()
-    documents = db.query(UploadedDocument).all()
+def evaluation_summary(db: Session, user_id: str):
+    rows = (
+        db.query(EvaluationLog)
+        .filter(EvaluationLog.user_id == user_id)
+        .all()
+    )
+
+    documents = (
+        db.query(UploadedDocument)
+        .filter(UploadedDocument.user_id == user_id)
+        .all()
+    )
 
     total_queries = len(rows)
     total_documents = len(documents)
@@ -209,3 +610,31 @@ def evaluation_summary(db: Session):
         "average_latency_ms": round(avg_latency, 2),
         "no_answer_count": no_answer_count,
     }
+
+
+def get_user_by_email(db: Session, email: str):
+    return db.query(User).filter(User.email == email).first()
+
+
+def get_user_by_id(db: Session, user_id: str):
+    return db.query(User).filter(User.id == user_id).first()
+
+
+def create_user(
+    db: Session,
+    user_id: str,
+    email: str,
+    hashed_password: str,
+):
+    user = User(
+        id=user_id,
+        email=email,
+        hashed_password=hashed_password,
+        is_active=True,
+    )
+
+    db.add(user)
+    db.commit()
+    db.refresh(user)
+
+    return user
