@@ -821,13 +821,17 @@ function App() {
   const [messages, setMessages] = useState([]);
   const [loading, setLoading] = useState(false);
 
-  const [threadId, setThreadId] = useState(
-    localStorage.getItem("thread_id") || newThreadId()
-  );
+  // const [threadId, setThreadId] = useState(
+  //   localStorage.getItem("thread_id") || newThreadId()
+  // );
+  const [threadId, setThreadId] = useState(newThreadId());
 
   const [threads, setThreads] = useState([]);
   const [documents, setDocuments] = useState([]);
   const [summary, setSummary] = useState(null);
+  function getThreadStorageKey(userEmail) {
+  return `thread_id_${userEmail}`;
+  }
 
   useEffect(() => {
     async function checkLogin() {
@@ -844,14 +848,23 @@ function App() {
     checkLogin();
   }, []);
 
-  useEffect(() => {
-    if (!user) return;
+  // useEffect(() => {
+  //   if (!user) return;
 
-    localStorage.setItem("thread_id", threadId);
-    refreshThreads();
-    refreshDocuments();
-    refreshSummary();
-  }, [threadId, user]);
+  //   localStorage.setItem("thread_id", threadId);
+  //   refreshThreads();
+  //   refreshDocuments();
+  //   refreshSummary();
+  // }, [threadId, user]);
+
+  useEffect(() => {
+  if (!user) return;
+
+  localStorage.setItem(getThreadStorageKey(user.email), threadId);
+  refreshThreads();
+  refreshDocuments();
+  refreshSummary();
+}, [threadId, user]);
 
   async function handleAuth(e) {
     e.preventDefault();
@@ -865,21 +878,44 @@ function App() {
       await loginUser(email, password);
       const currentUser = await getCurrentUser();
 
-      setUser(currentUser);
-      setAuthStatus("");
+      // setUser(currentUser);
+      // setAuthStatus("");
+      const savedThreadId =
+        localStorage.getItem(getThreadStorageKey(currentUser.email)) || newThreadId();
+
+        setUser(currentUser);
+        setThreadId(savedThreadId);
+        localStorage.setItem(getThreadStorageKey(currentUser.email), savedThreadId);
+        setMessages([]);
+        setAuthStatus("");
     } catch (e) {
       setAuthStatus(e.message);
     }
   }
 
+  // function handleLogout() {
+  //   clearToken();
+  //   setUser(null);
+  //   setMessages([]);
+  //   setThreads([]);
+  //   setDocuments([]);
+  //   setSummary(null);
+  //   setStatus("");
+  // }
+
   function handleLogout() {
-    clearToken();
-    setUser(null);
-    setMessages([]);
-    setThreads([]);
-    setDocuments([]);
-    setSummary(null);
-    setStatus("");
+  clearToken();
+
+  const freshThreadId = newThreadId();
+
+  setUser(null);
+  setThreadId(freshThreadId);
+  setMessages([]);
+  setThreads([]);
+  setDocuments([]);
+  setSummary(null);
+  setStatus("");
+  setQuestion("");
   }
 
   async function refreshThreads() {
@@ -915,7 +951,7 @@ function App() {
 
   function startNewChat() {
     const id = newThreadId();
-    localStorage.setItem("thread_id", id);
+    localStorage.setItem(getThreadStorageKey(user.email), id);
     setThreadId(id);
     setMessages([]);
     setQuestion("");
@@ -1151,4 +1187,4 @@ function App() {
   );
 }
 
-createRoot(document.getElementById("root")).render(<App />);
+createRoot(document.getElementById("root")).render(<App />);  

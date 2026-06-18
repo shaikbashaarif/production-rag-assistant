@@ -339,18 +339,43 @@ from app.db.models import (
 )
 
 
+# def get_or_create_thread(db: Session, thread_id: str, user_id: str):
+#     thread = (
+#         db.query(ChatThread)
+#         .filter(
+#             ChatThread.id == thread_id,
+#             ChatThread.user_id == user_id,
+#         )
+#         .first()
+#     )
+
+#     if thread:
+#         return thread
+
+#     thread = ChatThread(
+#         id=thread_id,
+#         user_id=user_id,
+#         title="New Chat",
+#     )
+
+#     db.add(thread)
+#     db.commit()
+#     db.refresh(thread)
+
+#     return thread
+
 def get_or_create_thread(db: Session, thread_id: str, user_id: str):
-    thread = (
+    existing_thread = (
         db.query(ChatThread)
-        .filter(
-            ChatThread.id == thread_id,
-            ChatThread.user_id == user_id,
-        )
+        .filter(ChatThread.id == thread_id)
         .first()
     )
 
-    if thread:
-        return thread
+    if existing_thread:
+        if existing_thread.user_id != user_id:
+            raise ValueError("Thread does not belong to this user.")
+
+        return existing_thread
 
     thread = ChatThread(
         id=thread_id,

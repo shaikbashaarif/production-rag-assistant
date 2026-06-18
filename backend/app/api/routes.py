@@ -350,6 +350,148 @@ def chat(
     )
 
 
+# @router.post("/chat/stream")
+# async def chat_stream(
+#     request: ChatRequest,
+#     db: Session = Depends(get_db),
+#     current_user=Depends(get_current_user),
+# ):
+#     start = time.time()
+
+#     crud.get_or_create_thread(db, request.thread_id, current_user.id)
+
+#     existing = crud.get_messages(db, request.thread_id, current_user.id)
+
+#     if len(existing) == 0:
+#         crud.update_thread_title(
+#             db,
+#             request.thread_id,
+#             current_user.id,
+#             generate_title(request.question),
+#         )
+
+#     crud.add_message(
+#         db,
+#         request.thread_id,
+#         current_user.id,
+#         "user",
+#         request.question,
+#     )
+
+#     async def event_generator():
+#         full_answer = ""
+
+#         answer, sources = ask_rag(
+#             question=request.question,
+#             thread_id=request.thread_id,
+#             user_id=current_user.id,
+#             top_k=request.top_k,
+#         )
+
+#         for token in answer.split(" "):
+#             full_answer += token + " "
+#             yield f"data: {json.dumps({'token': token + ' '})}\n\n"
+
+#         crud.add_message(
+#             db,
+#             request.thread_id,
+#             current_user.id,
+#             "assistant",
+#             full_answer.strip(),
+#             sources=sources,
+#         )
+
+#         latency_ms = (time.time() - start) * 1000
+
+#         crud.add_evaluation(
+#             db=db,
+#             user_id=current_user.id,
+#             thread_id=request.thread_id,
+#             question=request.question,
+#             answer=full_answer.strip(),
+#             latency_ms=latency_ms,
+#             sources_count=len(sources),
+#         )
+
+#         yield f"data: {json.dumps({'sources': sources})}\n\n"
+#         yield f"data: {json.dumps({'done': True})}\n\n"
+
+#     return StreamingResponse(
+#         event_generator(),
+#         media_type="text/event-stream",
+#     )
+
+# @router.post("/chat/stream")
+# async def chat_stream(
+#     request: ChatRequest,
+#     db: Session = Depends(get_db),
+#     current_user=Depends(get_current_user),
+# ):
+#     start = time.time()
+
+#     crud.get_or_create_thread(db, request.thread_id, current_user.id)
+
+#     existing = crud.get_messages(db, request.thread_id, current_user.id)
+
+#     if len(existing) == 0:
+#         crud.update_thread_title(
+#             db,
+#             request.thread_id,
+#             current_user.id,
+#             generate_title(request.question),
+#         )
+
+#     crud.add_message(
+#         db,
+#         request.thread_id,
+#         current_user.id,
+#         "user",
+#         request.question,
+#     )
+
+#     async def event_generator():
+#         full_answer = ""
+
+#         answer, sources = ask_rag(
+#             question=request.question,
+#             thread_id=request.thread_id,
+#             user_id=current_user.id,
+#             top_k=request.top_k,
+#         )
+
+#         for token in answer.split(" "):
+#             full_answer += token + " "
+#             yield f"data: {json.dumps({'token': token + ' '})}\n\n"
+
+#         crud.add_message(
+#             db,
+#             request.thread_id,
+#             current_user.id,
+#             "assistant",
+#             full_answer.strip(),
+#             sources=sources,
+#         )
+
+#         latency_ms = (time.time() - start) * 1000
+
+#         crud.add_evaluation(
+#             db=db,
+#             user_id=current_user.id,
+#             thread_id=request.thread_id,
+#             question=request.question,
+#             answer=full_answer.strip(),
+#             latency_ms=latency_ms,
+#             sources_count=len(sources),
+#         )
+
+#         yield f"data: {json.dumps({'sources': sources})}\n\n"
+#         yield f"data: {json.dumps({'done': True})}\n\n"
+
+#     return StreamingResponse(
+#         event_generator(),
+#         media_type="text/event-stream",
+#     )
+
 @router.post("/chat/stream")
 async def chat_stream(
     request: ChatRequest,
@@ -357,61 +499,59 @@ async def chat_stream(
     current_user=Depends(get_current_user),
 ):
     start = time.time()
+    user_id = current_user.id
 
-    crud.get_or_create_thread(db, request.thread_id, current_user.id)
+    crud.get_or_create_thread(db, request.thread_id, user_id)
 
-    existing = crud.get_messages(db, request.thread_id, current_user.id)
+    existing = crud.get_messages(db, request.thread_id, user_id)
 
     if len(existing) == 0:
         crud.update_thread_title(
             db,
             request.thread_id,
-            current_user.id,
+            user_id,
             generate_title(request.question),
         )
 
     crud.add_message(
         db,
         request.thread_id,
-        current_user.id,
+        user_id,
         "user",
         request.question,
     )
 
+    answer, sources = ask_rag(
+        question=request.question,
+        thread_id=request.thread_id,
+        user_id=user_id,
+        top_k=request.top_k,
+    )
+
+    crud.add_message(
+        db,
+        request.thread_id,
+        user_id,
+        "assistant",
+        answer,
+        sources=sources,
+    )
+
+    latency_ms = (time.time() - start) * 1000
+
+    crud.add_evaluation(
+        db=db,
+        user_id=user_id,
+        thread_id=request.thread_id,
+        question=request.question,
+        answer=answer,
+        latency_ms=latency_ms,
+        sources_count=len(sources),
+    )
+
     async def event_generator():
-        full_answer = ""
-
-        answer, sources = ask_rag(
-            question=request.question,
-            thread_id=request.thread_id,
-            user_id=current_user.id,
-            top_k=request.top_k,
-        )
-
         for token in answer.split(" "):
-            full_answer += token + " "
             yield f"data: {json.dumps({'token': token + ' '})}\n\n"
-
-        crud.add_message(
-            db,
-            request.thread_id,
-            current_user.id,
-            "assistant",
-            full_answer.strip(),
-            sources=sources,
-        )
-
-        latency_ms = (time.time() - start) * 1000
-
-        crud.add_evaluation(
-            db=db,
-            user_id=current_user.id,
-            thread_id=request.thread_id,
-            question=request.question,
-            answer=full_answer.strip(),
-            latency_ms=latency_ms,
-            sources_count=len(sources),
-        )
 
         yield f"data: {json.dumps({'sources': sources})}\n\n"
         yield f"data: {json.dumps({'done': True})}\n\n"
