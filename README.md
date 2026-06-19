@@ -1,32 +1,42 @@
-# Production RAG Assistant — Full Stack AI Document Chatbot
+# Production RAG Assistant — Multi-User AI Document Chatbot
 
 A GitHub-ready, freelance-portfolio RAG application converted from an IPYNB notebook into a real backend + frontend product.
 
 ## Included Features
 
+- JWT Authentication (Register/Login)
+- Multi-user document ownership
+- User-isolated retrieval
+- User-isolated chat threads
+- User-isolated evaluations
 - PDF/TXT upload and indexing
-- Persistent vector database using ChromaDB
+- Hybrid Retrieval (Vector + Keyword Search)
+- PostgreSQL + pgvector
 - FastAPI backend
 - React + Vite frontend
 - LangGraph RAG workflow
-- SQLite database for chat threads, messages, uploaded document records, and LangGraph checkpoints
-- Threaded conversations using `thread_id`
-- Streaming response endpoint using Server-Sent Events
-- Source preview support
+- Streaming responses (SSE)
+- Source citations
+- Evaluation dashboard
 - GitHub-friendly structure
 
 ## Architecture
 
 ```text
-frontend React UI
-   ↓
-FastAPI backend
-   ↓
-Upload API → document loader → splitter → OpenAI embeddings → persistent ChromaDB
-   ↓
-Chat API / Streaming API → LangGraph RAG → OpenAI model
-   ↓
-SQLite stores threads, messages, uploads, and LangGraph checkpoints
+React Frontend
+      ↓
+JWT Authentication
+      ↓
+FastAPI Backend
+      ↓
+LangGraph RAG Pipeline
+      ↓
+Hybrid Retrieval
+(Vector Search + Full Text Search)
+      ↓
+PostgreSQL + pgvector
+      ↓
+OpenAI LLM
 ```
 
 ## Backend Setup
@@ -78,6 +88,43 @@ Frontend runs at:
 http://localhost:5173
 ```
 
+
+## Screenshots
+
+### Login
+
+![Login](screenshots/login.png)
+
+### Upload
+
+![Upload](screenshots/upload.png)
+
+### Chat
+
+![Chat](screenshots/chat.png)
+
+### Sources
+
+![Sources](screenshots/sources.png)
+
+### Dashboard
+
+![Dashboard](screenshots/dashboard.png)
+
+
+
+## Security Features
+
+- JWT Authentication
+- Protected APIs
+- User-owned Documents
+- User-owned Threads
+- User-owned Messages
+- User-owned Evaluations
+- User-Isolated Retrieval
+
+
+
 ## Important Persistence Details
 
 - Uploaded files are stored in `backend/app/storage/uploads`
@@ -105,4 +152,4 @@ These are already included in `.gitignore`.
 
 ## Resume Line
 
-Built a production-ready RAG document assistant using FastAPI, React, LangGraph, OpenAI embeddings, persistent ChromaDB, SQLite chat history, threaded conversations, and streaming responses.
+Built a production-ready multi-user RAG platform using FastAPI, React, PostgreSQL, pgvector, LangGraph, OpenAI embeddings, JWT authentication, hybrid retrieval, streaming responses, and complete user data isolation.
