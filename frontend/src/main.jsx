@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { createRoot } from "react-dom/client";
-
+import { useThreads } from "./hooks/useThreads";
 import "./style.css";
 
 import AuthPage from "./components/AuthPage";
@@ -16,9 +16,8 @@ import { useAuth } from "./hooks/useAuth";
 import { useDocuments } from "./hooks/useDocuments";
 import { useChat } from "./hooks/useChat";
 
-function getThreadStorageKey(email) {
-  return `thread_id_${email}`;
-}
+import { useAppInitialization } from "./hooks/useAppInitialization";
+
 
 function App() {
   /******************************
@@ -46,7 +45,7 @@ function App() {
   /******************************
    * Thread State
    ******************************/
-  const [threadId, setThreadId] = useState(newThreadId());
+ 
 
   /******************************
    * Documents Hook
@@ -61,6 +60,17 @@ function App() {
     upload,
     remove,
   } = useDocuments();
+
+  /******************************
+   * Threads Hook
+   ******************************/
+
+  const {
+  threadId,
+  setThreadId,
+  restoreThread,
+  startNewChat,
+} = useThreads(user);
 
   /******************************
    * Chat Hook
@@ -79,28 +89,10 @@ function App() {
   /******************************
    * Restore login on refresh
    ******************************/
-  useEffect(() => {
-    async function restoreLogin() {
-      if (!getToken()) return;
-
-      try {
-        const currentUser = await getCurrentUser();
-
-        setUser(currentUser);
-
-        const savedThread =
-          localStorage.getItem(
-            getThreadStorageKey(currentUser.email)
-          ) || newThreadId();
-
-        setThreadId(savedThread);
-      } catch (err) {
-        console.error(err);
-      }
-    }
-
-    restoreLogin();
-  }, []);
+  useAppInitialization({
+    setUser,
+    restoreThread,
+  });
 
   /******************************
    * Refresh data
@@ -116,30 +108,7 @@ function App() {
   /******************************
    * Login/Register
    ******************************/
-  // async function handleAuth(e) {
-  //   e.preventDefault();
 
-  //   let currentUser;
-
-  //   if (authMode === "register") {
-  //     currentUser = await register(email, password);
-  //   } else {
-  //     currentUser = await login(email, password);
-  //   }
-
-  //   const savedThread =
-  //     localStorage.getItem(
-  //       getThreadStorageKey(currentUser.email)
-  //     ) || newThreadId();
-
-  //   localStorage.setItem(
-  //     getThreadStorageKey(currentUser.email),
-  //     savedThread
-  //   );
-
-  //   setThreadId(savedThread);
-  //   setMessages([]);
-  // }
 
   async function handleAuth(e) {
   e.preventDefault();
@@ -192,19 +161,7 @@ function App() {
   /******************************
    * New Chat
    ******************************/
-  function startNewChat() {
-    const id = newThreadId();
-
-    localStorage.setItem(
-      getThreadStorageKey(user.email),
-      id
-    );
-
-    setThreadId(id);
-    setMessages([]);
-    setQuestion("");
-    setStatus("");
-  }
+  
 
   /******************************
    * Login Screen
@@ -233,7 +190,15 @@ function App() {
         user={user}
         threadId={threadId}
         threads={threads}
-        startNewChat={startNewChat}
+        startNewChat={() => {
+          const id = startNewChat();
+
+          console.log("MAIN RECEIVED:", id);
+
+          setMessages([]);
+          setQuestion("");
+          setStatus("");
+        }}
         loadThread={loadThread}
         handleLogout={handleLogout}
       />
