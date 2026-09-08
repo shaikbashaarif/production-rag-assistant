@@ -1,4 +1,4 @@
-# Production RAG Assistant — Full Stack AI Document Chatbot
+# Production-oriented RAG Assistant — Full Stack AI Document Chatbot
 
 A GitHub-ready, freelance-portfolio RAG application converted from an IPYNB notebook into a real backend + frontend product.
 
